@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Birthday Message</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;800&family=Homemade+Apple&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+    <!-- Loading Screen -->
+    <section id="loading-screen" class="screen active" aria-label="Loading">
+        <div class="loading-wrapper">
+            <div class="spinner" aria-hidden="true"></div>
+            <div class="progress-text" id="progress-text">0%</div>
+            <div class="progress-bar">
+                <div class="progress-fill" id="progress-fill" style="width: 0%"></div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Main Menu -->
+    <section id="menu-screen" class="screen" aria-label="Main Menu">
+        <div class="menu-wrapper">
+            <button id="btn-open" class="btn btn-primary" aria-label="Open This">Open This</button>
+            <button id="btn-exit-main" class="btn btn-exit" aria-label="Exit">Exit</button>
+        </div>
+    </section>
+
+    <!-- Birthday Message -->
+    <section id="message-screen" class="screen" aria-label="Birthday Message">
+        <div class="balloons-layer" aria-hidden="true"></div>
+        <div class="message-wrapper">
+            <h1 class="title">HAPPY 14TH BIRTHDAY!!</h1>
+            <div class="paper">
+                <div class="paper-lines"></div>
+                <textarea class="paper-text" id="paper-text" placeholder="HELLO JIOLO, HAPPY HAPPY HAPPIESTIEST BIRTHDAY TO YOU, I JUST WANTED TO SAY THAT ENJOY YOUR SPECIAL DAY.
+‎
+‎I HOPE YOUR DAY IS FILLED WITH SO MUCH LOVE, LAUGHTER, AND HAPPINESS. YOU DESERVE TO BE CELEBRATED BECAUSE YOU ARE TRULY SOMEONE SPECIAL. MAY THIS YEAR BRING YOU COUNTLESS BLESSINGS, NEW OPPORTUNITIES, AND MOMENTS THAT WILL MAKE YOU SMILE EVEN ON THE HARDEST DAYS.
+‎
+‎I WANT YOU TO ALWAYS REMEMBER HOW IMPORTANT YOU ARE AND HOW MUCH YOU MEAN TO THE PEOPLE AROUND YOU. SOMETIMES YOU MAY NOT SEE IT, BUT YOU HAVE A WAY OF MAKING OTHERS FEEL LIGHTER AND HAPPIER JUST BY BEING YOURSELF. THAT’S A RARE GIFT, AND IT MAKES YOU SHINE IN YOUR OWN UNIQUE WAY.
+‎
+‎AS YOU CELEBRATE THIS DAY, I HOPE YOU TAKE TIME TO APPRECIATE HOW FAR YOU’VE COME AND HOW MUCH MORE AWAITS YOU AHEAD. KEEP DREAMING, KEEP GOING, AND NEVER FORGET THAT YOU DESERVE ALL THE GOOD THINGS LIFE CAN GIVE.
+‎
+‎ENJOY YOUR SPECIAL DAY TO THE FULLEST—EAT, LAUGH, AND CELEBRATE WITH THE PEOPLE WHO GENUINELY CARE FOR YOU. 
+‎
+‎AND LASTLY, JUST STUDY HARD. YOU'LL HAVE TO GO THROUGH MANY DIFFICULT THINGS, BUT LOOK AT ME, I DID ALL OF THAT, AND I KNOW YOU CAN DO IT TOO. IF YOU EVER FEEL LIKE YOU CAN'T HANDLE IT ANYMORE, DON'T PRESSURE YOURSELF. IF YOU NEED HELP, I'M HERE. 
+‎
+‎ONCE AGAIN, HAPPY HAPPY BIRTHDAY! MAY THIS BE ONE OF YOUR BEST YEARS YET, FILLED WITH JOY, PEACE, AND ENDLESS REASONS TO BE HAPPY😉🎂✨" readonly aria-readonly="true" tabindex="-1"></textarea>
+            </div>
+            <div class="button-row">
+                <button id="btn-open-cake" class="btn btn-cake" aria-label="Open This Cake">OPEN THIS CAKE</button>
+                <button id="btn-exit-message" class="btn btn-exit-bottom" aria-label="Exit">Exit</button>
+            </div>
+        </div>
+    </section>
+
+    <!-- Cake Screen -->
+    <section id="cake-screen" class="screen" aria-label="Cake Screen">
+        <div class="cake-wrapper">
+            <div class="candle-count-display">
+                HAPPY BIRTHDAY JIOLO!
+            </div>
+            <div class="cake-container">
+                <div class="cake" id="interactive-cake">
+                    <div id="candleCount" style="display:none;"></div>
+                    <div class="plate"></div>
+                    <div class="layer layer-bottom"></div>
+                    <div class="layer layer-middle"></div>
+                    <div class="layer layer-top"></div>
+                    <div class="icing"></div>
+                    <div class="drip drip1"></div>
+                    <div class="drip drip2"></div>
+                    <div class="drip drip3"></div>
+                </div>
+            </div>
+            <div class="cake-button-row">
+                <button id="btn-back-to-message" class="btn btn-back-small" aria-label="Back to Message">Back to Message</button>
+                <button id="btn-exit-cake" class="btn btn-exit-small" aria-label="Exit">Exit</button>
+            </div>
+            <div class="cake-instruction-message">
+                <span class="announcement-icon">!</span>
+                <span>add as much as candle and blow your microphone</span>
+            </div>
+        </div>
+    </section>
+
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.3.2"></script>
+    <script src="script.js"></script>
+</body>
+</html>
+
+

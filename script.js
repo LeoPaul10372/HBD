@@ -193,6 +193,7 @@
     document.body.appendChild(indicator);
   }
 
+
   function updateMicrophoneStatus(status) {
     const indicator = document.getElementById('mic-indicator');
     if (indicator) {
@@ -251,9 +252,9 @@
     }
     let average = sum / bufferLength;
 
-    // More conservative threshold to prevent false positives
-    // Only detect blowing if there's significant audio input
-    const isBlowingDetected = average > 15; // Higher threshold to prevent false positives
+    // Very conservative threshold - only detect strong blowing
+    // This should prevent any false positives from background noise
+    const isBlowingDetected = average > 25; // Much higher threshold
     console.log('Audio level:', average, 'Blowing:', isBlowingDetected);
     return isBlowingDetected;
   }
@@ -276,7 +277,7 @@
       updateMicrophoneStatus("Blowing detected! 💨");
       
       candles.forEach((candle) => {
-        if (!candle.classList.contains("out") && Math.random() > 0.3) { // Higher chance when actually blowing
+        if (!candle.classList.contains("out") && Math.random() > 0.1) { // Lower chance to make it more realistic
           candle.classList.add("out");
           blownOut++;
           console.log("Candle blown out!");
@@ -347,12 +348,13 @@
           microphone = audioContext.createMediaStreamSource(stream);
           microphone.connect(analyser);
           
-          // Wait a moment for the microphone to stabilize before starting detection
+          // Wait for microphone to stabilize, then start detection
           setTimeout(() => {
-            // Start checking for blowing with more frequent intervals
-            blowOutInterval = setInterval(blowOutCandles, 100); // Slightly less frequent to prevent false positives
+            updateMicrophoneStatus("Ready - Blow to extinguish candles!");
+            // Start checking for blowing with less frequent intervals
+            blowOutInterval = setInterval(blowOutCandles, 200);
             console.log("Microphone setup complete - detection started");
-          }, 1000); // 1 second delay to let microphone stabilize
+          }, 2000); // 2 second delay to let microphone stabilize
         })
         .catch(function (err) {
           console.log("Unable to access microphone: " + err);

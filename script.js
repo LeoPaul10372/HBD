@@ -130,6 +130,14 @@
       clearInterval(blowOutInterval);
       blowOutInterval = null;
     }
+    
+    // Clear any existing confetti
+    clearConfetti();
+    
+    // Reset confetti library if needed
+    if (typeof confetti !== 'undefined' && confetti.reset) {
+      confetti.reset();
+    }
   }
   
   function enableAudioOnInteraction() {
@@ -146,32 +154,7 @@
   }
   
   function setupMicrophoneWithInteraction() {
-    // Add a button to enable microphone
-    const micButton = document.createElement('button');
-    micButton.id = 'enable-mic-btn';
-    micButton.style.cssText = `
-      position: fixed;
-      top: 80px;
-      right: 20px;
-      background: #ff6b6b;
-      color: white;
-      border: none;
-      padding: 10px 15px;
-      border-radius: 5px;
-      font-size: 14px;
-      cursor: pointer;
-      z-index: 1000;
-      box-shadow: 0 2px 10px rgba(0,0,0,0.3);
-    `;
-    micButton.textContent = '🎤 Enable Microphone';
-    document.body.appendChild(micButton);
-    
-    micButton.addEventListener('click', function() {
-      micButton.remove();
-      setupMicrophone();
-    });
-    
-    // Also try to setup microphone immediately
+    // Setup microphone immediately without button
     setupMicrophone();
   }
 
@@ -426,8 +409,17 @@
 
   function triggerConfetti() {
     console.log("Triggering confetti...");
+    
+    // Clear any existing confetti first
+    clearConfetti();
+    
     if (typeof confetti !== 'undefined' && confetti) {
       try {
+        // Reset confetti library
+        if (confetti.reset) {
+          confetti.reset();
+        }
+        
         confetti({
           particleCount: 100,
           spread: 70,
@@ -439,16 +431,23 @@
         // Fallback: try again after a short delay
         setTimeout(() => {
           if (typeof confetti !== 'undefined' && confetti) {
-            confetti({
-              particleCount: 50,
-              spread: 50,
-              origin: { y: 0.5 }
-            });
+            try {
+              confetti({
+                particleCount: 50,
+                spread: 50,
+                origin: { y: 0.5 }
+              });
+            } catch (e) {
+              console.error("Fallback confetti failed:", e);
+              createFallbackConfetti();
+            }
+          } else {
+            createFallbackConfetti();
           }
         }, 100);
       }
     } else {
-      console.error("Confetti library not loaded, trying fallback...");
+      console.error("Confetti library not loaded, using fallback...");
       // Fallback confetti using CSS animations
       createFallbackConfetti();
     }
@@ -510,6 +509,13 @@
 
   function endlessConfetti() {
     console.log("Starting endless confetti...");
+    
+    // Clear any existing endless confetti first
+    if (confettiInterval) {
+      clearInterval(confettiInterval);
+      confettiInterval = null;
+    }
+    
     if (typeof confetti !== 'undefined' && confetti) {
       confettiInterval = setInterval(function() {
         try {
@@ -520,6 +526,8 @@
           });
         } catch (error) {
           console.error("Endless confetti error:", error);
+          // Fallback to CSS confetti if canvas confetti fails
+          createFallbackConfetti();
         }
       }, 1000);
     } else {
@@ -749,15 +757,10 @@
     analyser = null;
     microphone = null;
 
-    // Remove microphone indicator and button
+    // Remove microphone indicator
     const micIndicator = document.getElementById('mic-indicator');
     if (micIndicator) {
       micIndicator.remove();
-    }
-    
-    const micButton = document.getElementById('enable-mic-btn');
-    if (micButton) {
-      micButton.remove();
     }
 
     // Reset all candles to unlit state

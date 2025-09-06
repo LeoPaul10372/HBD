@@ -124,6 +124,12 @@
     
     // Enable audio on user interaction
     enableAudioOnInteraction();
+    
+    // Reset any existing intervals
+    if (blowOutInterval) {
+      clearInterval(blowOutInterval);
+      blowOutInterval = null;
+    }
   }
   
   function enableAudioOnInteraction() {
@@ -245,8 +251,9 @@
     }
     let average = sum / bufferLength;
 
-    // More sensitive threshold for better detection
-    const isBlowingDetected = average > 8; // Lower threshold for better sensitivity
+    // More conservative threshold to prevent false positives
+    // Only detect blowing if there's significant audio input
+    const isBlowingDetected = average > 15; // Higher threshold to prevent false positives
     console.log('Audio level:', average, 'Blowing:', isBlowingDetected);
     return isBlowingDetected;
   }
@@ -269,7 +276,7 @@
       updateMicrophoneStatus("Blowing detected! 💨");
       
       candles.forEach((candle) => {
-        if (!candle.classList.contains("out") && Math.random() > 0.2) { // Higher chance when actually blowing
+        if (!candle.classList.contains("out") && Math.random() > 0.3) { // Higher chance when actually blowing
           candle.classList.add("out");
           blownOut++;
           console.log("Candle blown out!");
@@ -285,6 +292,12 @@
       if (candles.every((candle) => candle.classList.contains("out"))) {
         console.log("All candles blown out! Triggering celebration...");
         updateMicrophoneStatus("All candles out! 🎉");
+        
+        // Stop the detection interval to prevent multiple celebrations
+        if (blowOutInterval) {
+          clearInterval(blowOutInterval);
+          blowOutInterval = null;
+        }
         
         // Play audio immediately
         audio.currentTime = 0;
@@ -334,9 +347,12 @@
           microphone = audioContext.createMediaStreamSource(stream);
           microphone.connect(analyser);
           
-          // Start checking for blowing with more frequent intervals
-          blowOutInterval = setInterval(blowOutCandles, 50); // More frequent checking
-          console.log("Microphone setup complete");
+          // Wait a moment for the microphone to stabilize before starting detection
+          setTimeout(() => {
+            // Start checking for blowing with more frequent intervals
+            blowOutInterval = setInterval(blowOutCandles, 100); // Slightly less frequent to prevent false positives
+            console.log("Microphone setup complete - detection started");
+          }, 1000); // 1 second delay to let microphone stabilize
         })
         .catch(function (err) {
           console.log("Unable to access microphone: " + err);

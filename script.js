@@ -383,29 +383,33 @@
   }
   
   function handleManualCandleBlow(event) {
-    const candle = event.target.closest('.candle');
-    if (candle && !candle.classList.contains('out')) {
-      event.preventDefault();
-      event.stopPropagation();
-      
-      console.log("Manual candle blow detected");
-      candle.classList.add('out');
-      updateCandleCount();
-      
-      // Check if all candles are out
-      if (candles.every((c) => c.classList.contains("out"))) {
-        console.log("All candles blown out manually! Triggering celebration...");
+    // Only handle clicks directly on candle flames, not the entire candle area
+    const flame = event.target.closest('.flame');
+    if (flame) {
+      const candle = flame.parentElement;
+      if (candle && !candle.classList.contains('out')) {
+        event.preventDefault();
+        event.stopPropagation();
         
-        // Play audio immediately
-        audio.currentTime = 0;
-        audio.play().catch(err => {
-          console.log("Audio play failed:", err);
-        });
+        console.log("Manual candle blow detected");
+        candle.classList.add('out');
+        updateCandleCount();
         
-        setTimeout(function() {
-          triggerConfetti();
-          endlessConfetti();
-        }, 200);
+        // Check if all candles are out
+        if (candles.every((c) => c.classList.contains("out"))) {
+          console.log("All candles blown out manually! Triggering celebration...");
+          
+          // Play audio immediately
+          audio.currentTime = 0;
+          audio.play().catch(err => {
+            console.log("Audio play failed:", err);
+          });
+          
+          setTimeout(function() {
+            triggerConfetti();
+            endlessConfetti();
+          }, 200);
+        }
       }
     }
   }

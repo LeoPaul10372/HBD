@@ -84,6 +84,7 @@
   });
   btnBackToMessage.addEventListener('click', () => {
     cleanupCakeScreen();
+    clearConfetti();
     showScreen(messageScreen);
   });
   btnExitCake.addEventListener('click', () => {
@@ -98,6 +99,7 @@
   let analyser;
   let microphone;
   let audio = new Audio('hbd.mp3');
+  audio.preload = 'auto'; // Preload the audio
   let blowOutInterval;
   let confettiInterval;
 
@@ -117,7 +119,53 @@
     // Add microphone status indicator
     addMicrophoneIndicator();
 
-    // Setup microphone
+    // Setup microphone with user interaction
+    setupMicrophoneWithInteraction();
+    
+    // Enable audio on user interaction
+    enableAudioOnInteraction();
+  }
+  
+  function enableAudioOnInteraction() {
+    // Add click handler to enable audio
+    const enableAudio = () => {
+      audio.load(); // Reload audio
+      console.log("Audio enabled for user interaction");
+      document.removeEventListener('click', enableAudio);
+      document.removeEventListener('touchstart', enableAudio);
+    };
+    
+    document.addEventListener('click', enableAudio, { once: true });
+    document.addEventListener('touchstart', enableAudio, { once: true });
+  }
+  
+  function setupMicrophoneWithInteraction() {
+    // Add a button to enable microphone
+    const micButton = document.createElement('button');
+    micButton.id = 'enable-mic-btn';
+    micButton.style.cssText = `
+      position: fixed;
+      top: 80px;
+      right: 20px;
+      background: #ff6b6b;
+      color: white;
+      border: none;
+      padding: 10px 15px;
+      border-radius: 5px;
+      font-size: 14px;
+      cursor: pointer;
+      z-index: 1000;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+    `;
+    micButton.textContent = '🎤 Enable Microphone';
+    document.body.appendChild(micButton);
+    
+    micButton.addEventListener('click', function() {
+      micButton.remove();
+      setupMicrophone();
+    });
+    
+    // Also try to setup microphone immediately
     setupMicrophone();
   }
 
@@ -171,6 +219,14 @@
   }
 
   interactiveCake.addEventListener("click", function (event) {
+    // Check if clicking on an existing candle
+    const clickedCandle = event.target.closest('.candle');
+    if (clickedCandle) {
+      // If clicking on a candle, don't add a new one
+      return;
+    }
+    
+    // Only add candle if not clicking on existing elements
     const rect = interactiveCake.getBoundingClientRect();
     const left = event.clientX - rect.left;
     const top = event.clientY - rect.top;
@@ -189,9 +245,10 @@
     }
     let average = sum / bufferLength;
 
-    // Lower threshold and add debug logging
-    console.log('Audio level:', average);
-    return average > 15; // Much lower threshold
+    // More sensitive threshold for better detection
+    const isBlowingDetected = average > 8; // Lower threshold for better sensitivity
+    console.log('Audio level:', average, 'Blowing:', isBlowingDetected);
+    return isBlowingDetected;
   }
 
   function blowOutCandles() {
@@ -200,12 +257,19 @@
     let blownOut = 0;
     const hasUnlitCandles = candles.some((candle) => !candle.classList.contains("out"));
     
-    if (hasUnlitCandles && isBlowing()) {
+    // Only proceed if there are unlit candles AND microphone is working
+    if (!hasUnlitCandles || !analyser) {
+      return;
+    }
+    
+    const blowingDetected = isBlowing();
+    
+    if (blowingDetected) {
       console.log("Blowing detected! Attempting to blow out candles...");
       updateMicrophoneStatus("Blowing detected! 💨");
       
       candles.forEach((candle) => {
-        if (!candle.classList.contains("out") && Math.random() > 0.3) { // Higher chance
+        if (!candle.classList.contains("out") && Math.random() > 0.2) { // Higher chance when actually blowing
           candle.classList.add("out");
           blownOut++;
           console.log("Candle blown out!");
@@ -221,18 +285,20 @@
       if (candles.every((candle) => candle.classList.contains("out"))) {
         console.log("All candles blown out! Triggering celebration...");
         updateMicrophoneStatus("All candles out! 🎉");
+        
+        // Play audio immediately
+        audio.currentTime = 0;
+        audio.play().catch(err => {
+          console.log("Audio play failed:", err);
+        });
+        
         setTimeout(function() {
           triggerConfetti();
           endlessConfetti();
         }, 200);
-        
-        // Play audio
-        audio.play().catch(err => {
-          console.log("Audio play failed:", err);
-        });
       }
-    } else if (hasUnlitCandles) {
-      // Reset status if not blowing
+    } else {
+      // Update status to show ready state
       updateMicrophoneStatus("Ready - Blow to extinguish candles!");
     }
   }
@@ -246,22 +312,30 @@
           audio: {
             echoCancellation: false,
             noiseSuppression: false,
-            autoGainControl: false
+            autoGainControl: false,
+            sampleRate: 44100
           }
         })
         .then(function (stream) {
           console.log("Microphone access granted");
           updateMicrophoneStatus("Ready - Blow to extinguish candles!");
           
-          audioContext = new (window.AudioContext || window.webkitAudioContext)();
+          // Create audio context with better settings
+          audioContext = new (window.AudioContext || window.webkitAudioContext)({
+            sampleRate: 44100
+          });
+          
           analyser = audioContext.createAnalyser();
-          analyser.fftSize = 512; // Increased for better sensitivity
-          analyser.smoothingTimeConstant = 0.3;
+          analyser.fftSize = 1024; // Higher resolution for better detection
+          analyser.smoothingTimeConstant = 0.1; // Less smoothing for more responsive detection
+          analyser.minDecibels = -90;
+          analyser.maxDecibels = -10;
+          
           microphone = audioContext.createMediaStreamSource(stream);
           microphone.connect(analyser);
           
-          // Start checking for blowing
-          blowOutInterval = setInterval(blowOutCandles, 100); // More frequent checking
+          // Start checking for blowing with more frequent intervals
+          blowOutInterval = setInterval(blowOutCandles, 50); // More frequent checking
           console.log("Microphone setup complete");
         })
         .catch(function (err) {
@@ -280,49 +354,190 @@
   function setupManualBlowing() {
     // Fallback: allow users to click on candles to blow them out
     console.log("Setting up manual candle blowing as fallback");
-    interactiveCake.addEventListener('click', function(event) {
-      const candle = event.target.closest('.candle');
-      if (candle && !candle.classList.contains('out')) {
-        candle.classList.add('out');
-        updateCandleCount();
+    
+    // Remove any existing event listeners first
+    document.removeEventListener('click', handleManualCandleBlow);
+    document.removeEventListener('touchend', handleManualCandleBlow);
+    
+    // Add new event listeners
+    document.addEventListener('click', handleManualCandleBlow);
+    document.addEventListener('touchend', handleManualCandleBlow);
+  }
+  
+  function handleManualCandleBlow(event) {
+    const candle = event.target.closest('.candle');
+    if (candle && !candle.classList.contains('out')) {
+      event.preventDefault();
+      event.stopPropagation();
+      
+      console.log("Manual candle blow detected");
+      candle.classList.add('out');
+      updateCandleCount();
+      
+      // Check if all candles are out
+      if (candles.every((c) => c.classList.contains("out"))) {
+        console.log("All candles blown out manually! Triggering celebration...");
         
-        // Check if all candles are out
-        if (candles.every((c) => c.classList.contains("out"))) {
-          setTimeout(function() {
-            triggerConfetti();
-            endlessConfetti();
-          }, 200);
-          audio.play();
-        }
+        // Play audio immediately
+        audio.currentTime = 0;
+        audio.play().catch(err => {
+          console.log("Audio play failed:", err);
+        });
+        
+        setTimeout(function() {
+          triggerConfetti();
+          endlessConfetti();
+        }, 200);
       }
+    }
+  }
+
+  function playAudio() {
+    // Reset audio to beginning
+    audio.currentTime = 0;
+    
+    // Play audio
+    audio.play().catch(err => {
+      console.log("Audio play failed:", err);
     });
   }
 
   function triggerConfetti() {
-    if (typeof confetti !== 'undefined') {
-      confetti({
-        particleCount: 100,
-        spread: 70,
-        origin: { y: 0.6 }
-      });
+    console.log("Triggering confetti...");
+    if (typeof confetti !== 'undefined' && confetti) {
+      try {
+        confetti({
+          particleCount: 100,
+          spread: 70,
+          origin: { y: 0.6 }
+        });
+        console.log("Confetti triggered successfully");
+      } catch (error) {
+        console.error("Confetti error:", error);
+        // Fallback: try again after a short delay
+        setTimeout(() => {
+          if (typeof confetti !== 'undefined' && confetti) {
+            confetti({
+              particleCount: 50,
+              spread: 50,
+              origin: { y: 0.5 }
+            });
+          }
+        }, 100);
+      }
+    } else {
+      console.error("Confetti library not loaded, trying fallback...");
+      // Fallback confetti using CSS animations
+      createFallbackConfetti();
     }
+  }
+  
+  function createFallbackConfetti() {
+    const confettiContainer = document.createElement('div');
+    confettiContainer.style.cssText = `
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 9999;
+    `;
+    
+    for (let i = 0; i < 50; i++) {
+      const confetti = document.createElement('div');
+      confetti.style.cssText = `
+        position: absolute;
+        width: 10px;
+        height: 10px;
+        background: ${['#ff6b6b', '#4ecdc4', '#45b7d1', '#96ceb4', '#feca57', '#ff9ff3'][Math.floor(Math.random() * 6)]};
+        left: ${Math.random() * 100}%;
+        animation: confettiFall ${2 + Math.random() * 3}s linear forwards;
+      `;
+      confettiContainer.appendChild(confetti);
+    }
+    
+    document.body.appendChild(confettiContainer);
+    
+    // Add CSS animation if not exists
+    if (!document.getElementById('confetti-animation')) {
+      const style = document.createElement('style');
+      style.id = 'confetti-animation';
+      style.textContent = `
+        @keyframes confettiFall {
+          0% {
+            transform: translateY(-100vh) rotate(0deg);
+            opacity: 1;
+          }
+          100% {
+            transform: translateY(100vh) rotate(720deg);
+            opacity: 0;
+          }
+        }
+      `;
+      document.head.appendChild(style);
+    }
+    
+    // Remove after animation
+    setTimeout(() => {
+      if (confettiContainer.parentNode) {
+        confettiContainer.parentNode.removeChild(confettiContainer);
+      }
+    }, 5000);
   }
 
   function endlessConfetti() {
-    if (typeof confetti !== 'undefined') {
+    console.log("Starting endless confetti...");
+    if (typeof confetti !== 'undefined' && confetti) {
       confettiInterval = setInterval(function() {
-        confetti({
-          particleCount: 200,
-          spread: 90,
-          origin: { y: 0 }
-        });
+        try {
+          confetti({
+            particleCount: 200,
+            spread: 90,
+            origin: { y: 0 }
+          });
+        } catch (error) {
+          console.error("Endless confetti error:", error);
+        }
       }, 1000);
+    } else {
+      console.error("Confetti library not loaded for endless confetti, using fallback...");
+      // Use fallback confetti for endless mode
+      confettiInterval = setInterval(function() {
+        createFallbackConfetti();
+      }, 2000);
     }
   }
 
+  function clearConfetti() {
+    // Clear confetti interval
+    if (confettiInterval) {
+      clearInterval(confettiInterval);
+      confettiInterval = null;
+    }
+    
+    // Clear any existing confetti canvas elements
+    const confettiCanvases = document.querySelectorAll('canvas[style*="pointer-events: none"]');
+    confettiCanvases.forEach(canvas => canvas.remove());
+  }
+
+  // Audio event listeners to handle playback issues
+  audio.addEventListener('ended', function() {
+    console.log("Audio ended, restarting...");
+    audio.currentTime = 0;
+    audio.play().catch(err => console.log("Audio restart failed:", err));
+  });
+
+  audio.addEventListener('error', function(e) {
+    console.log("Audio error:", e);
+  });
+
   // Kick off loading once DOM is ready
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', () => { startLoading(); setupAutoResize(); });
+    document.addEventListener('DOMContentLoaded', () => { 
+      startLoading(); 
+      setupAutoResize(); 
+    });
   } else {
     startLoading();
     setupAutoResize();
@@ -494,6 +709,9 @@
       confettiInterval = null;
     }
 
+    // Clear confetti
+    clearConfetti();
+
     // Stop microphone stream
     if (microphone && microphone.mediaStream) {
       microphone.mediaStream.getTracks().forEach(track => track.stop());
@@ -509,11 +727,22 @@
     analyser = null;
     microphone = null;
 
-    // Remove microphone indicator
+    // Remove microphone indicator and button
     const micIndicator = document.getElementById('mic-indicator');
     if (micIndicator) {
       micIndicator.remove();
     }
+    
+    const micButton = document.getElementById('enable-mic-btn');
+    if (micButton) {
+      micButton.remove();
+    }
+
+    // Reset all candles to unlit state
+    candles.forEach(candle => {
+      candle.classList.remove('out');
+    });
+    updateCandleCount();
 
     console.log("Cake screen cleaned up");
   }
